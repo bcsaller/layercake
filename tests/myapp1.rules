@@ -1,0 +1,3 @@
+rules:
+  - when: mysql
+    do: mysql-configure

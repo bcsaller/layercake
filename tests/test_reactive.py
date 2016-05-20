@@ -1,5 +1,8 @@
 import unittest
+import asyncio
 import pkg_resources
+
+from utils import local_stream
 
 from disco.ingestion import Knowledge
 from disco import reactive
@@ -8,8 +11,8 @@ from disco import reactive
 class TestReactive(unittest.TestCase):
     def test_rule(self):
         kb = Knowledge()
-        kb.load(pkg_resources.resource_stream(__name__, "mysql.yaml"))
-        kb.load_schema(pkg_resources.resource_stream(__name__, "interface-mysql.schema"))
+        kb.load(local_stream("mysql.yaml"))
+        kb.load_schema(local_stream("interface-mysql.schema"))
         rule = reactive.Rule(['mysql'], 'mysql-configure')
         self.assertTrue(rule.match(kb))
         rule = reactive.Rule(['pgsql'], 'pgsql-configure')
@@ -22,4 +25,7 @@ class TestReactive(unittest.TestCase):
         self.assertFalse(rule.match(kb))
 
     def test_reactive(self):
-        pass
+        r = reactive.Reactive("/bin/true")
+        r.load_rules(pkg_resources.resource_stream(__name__, "myapp1.rules"))
+        self.assertEqual(len(r.rules), 1)
+

@@ -1,0 +1,7 @@
+mysql:
+    interface: mysql
+    host: localhost:3306
+    username: test
+    password: youshallnot
+    database: test
+
