@@ -10,6 +10,9 @@ class Knowledge:
     def __init__(self):
         self.map = ChainMap()
 
+    def __repr__(self):
+        return str(self.map)
+
     def load(self, filelike, to=None):
         data = yaml.load(filelike)
         if to:
@@ -17,6 +20,10 @@ class Knowledge:
             for p in reversed(to.split(".")):
                 d = {p: d}
             data = d
+        self.inject(data)
+        return self
+
+    def inject(self, data):
         self.map = self.map.new_child(data)
         return self
 

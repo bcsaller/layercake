@@ -28,4 +28,3 @@ class TestReactive(unittest.TestCase):
         r = reactive.Reactive("/bin/true")
         r.load_rules(pkg_resources.resource_stream(__name__, "myapp1.rules"))
         self.assertEqual(len(r.rules), 1)
-

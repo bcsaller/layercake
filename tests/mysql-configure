@@ -1,0 +1,7 @@
+#!/usr/bin/python3.5
+import sys
+import json
+
+data = json.load(sys.stdin)
+# Here you'd render templates, write config files, etc
+print("READ", json.dumps(data))

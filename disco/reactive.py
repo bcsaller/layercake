@@ -1,14 +1,16 @@
 import asyncio
+import glob
 import json
 import logging
 import os
 import re
-import shlex
 import yaml
 from collections import ChainMap
 
+from . import discovery
 from . import ingestion
 
+log = logging.getLogger("reactive")
 _marker = object()
 
 
@@ -66,15 +68,21 @@ class Rule:
         This means if you match interface 'foo'
         foo will be passed to the handler as JSON.
         """
-        asyncio.create_subprocess_exec(self.cmd)
         data = ChainMap()
         for d in self.deps:
             interface = d.split('.')[0]
             if self._validate_schema(kb, d):
                 data = data.new_child(kb.get(interface))
 
-        stdout, stderr = await p.communicate(json.dumps(data))
-        if ec is not 0:
+        data = json.dumps(dict(data)).encode('utf-8')
+        p = await asyncio.create_subprocess_exec(
+                self.cmd,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+                )
+        stdout, stderr = await p.communicate(data)
+        if p.returncode is not 0:
             # XXX clean up
             raise OSError
 
@@ -88,8 +96,7 @@ class Any(Rule):
 
 
 class Reactive:
-    def __init__(self, cmd, loop=None):
-        self.cmd = cmd
+    def __init__(self, loop=None):
         self.loop = loop if loop else asyncio.get_event_loop()
         self.rules = []
         self.kb = ingestion.Knowledge()
@@ -109,8 +116,19 @@ class Reactive:
         return rule
 
     def load_rules(self, filelike):
+        if isinstance(filelike, str):
+            filelike = open(filelike, "r")
         for d in yaml.load(filelike)['rules']:
             self.add_rule(d)
+
+    def find_rules(self):
+        for fn in glob.glob("*.rules"):
+            self.load_rules(fn)
+
+    def load_schemas(self, schemas):
+        if isinstance(schemas, str):
+            schemas = open(schemas, "r")
+        self.kb.load_schema(schemas)
 
     async def run_once(self):
         complete = True
@@ -118,26 +136,29 @@ class Reactive:
             if rule.complete:
                 continue
             if not rule.match(self.kb):
+                log.debug("rule pending %s", rule)
                 complete = False
                 continue
-            await rule.execute()
+            log.info("executing %s", rule)
+            await rule.execute(self.kb)
         return complete
 
-    async def run(self):
+    async def run(self, discover):
         while True:
             complete = await self.run_once()
             if complete:
                 break
 
         # Do any tear down on the discovery services
-        #self.discovery.shutdown()
-        # Fork/Exec cmd
-        logging.info("Container Configured")
-        logging.info("Exec {}".format(self.cmd))
+        await discover.shutdown()
 
     async def __call__(self):
-        task = self.loop.create_task(self.run())
-        await task
-        cmd = shlex.split(self.cmd)
-        os.execvp(cmd[0], cmd)
+        # bring up the discovery task
+        d = discovery.Discover()
+        self.find_rules()
+        dtask = self.loop.create_task(d.watch(self.kb))
+        rtask = self.loop.create_task(self.run(d))
+        await dtask
+        await rtask
+        self.loop.stop()
 
