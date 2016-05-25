@@ -48,7 +48,9 @@ class Knowledge:
         try:
             self.validate(schema, path)
         except jsonschema.ValidationError as e:
-            logging.debug(exc_info=e)
+            # Don't show the full validation error because
+            # it might expose secrets to the log
+            logging.info("Failed to validate {}: {}".format(schema, e.message))
             return False
         except KeyError:
             return False

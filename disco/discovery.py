@@ -13,7 +13,7 @@ log = logging.getLogger("disco")
 
 class Source:
     """Interface for discovery sources"""
-    def __init__(self, **config):
+    def __init__(self, config):
         self.name = config.get('name', self.__class__.__name__.lower())
         self.config = config
 
@@ -50,8 +50,17 @@ class ConsulSource(Source):
         self.client = Consul(**self.config)
 
     async def State(self):
-        result = await self.client.kv.keys(self.config.get('prefix', ''))
-        return result
+        result = await self.client.kv.items(self.config.get('prefix', ''))
+        state = {}
+        for k, v in result.items():
+            o = state
+            if "/" in k:
+                parts = k.split("/")
+                for p in parts[:-1]:
+                    o = o.setdefault(p, {})
+                k = parts[-1]
+            o[k] = v
+        return state
 
 
 class Etcd(Source):
@@ -88,7 +97,7 @@ class Discover:
                 scls = FlatFile
             else:
                 raise ValueError("Unknown Disco Source {}".format(source))
-            self.add_source(scls(**self.config[source]))
+            self.add_source(scls(self.config[source]))
 
     def add_source(self, source):
         self.sources.append(source)

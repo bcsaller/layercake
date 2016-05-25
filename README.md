@@ -74,7 +74,7 @@ Configuration
 =============
 
 Disco is configured with the DISCO_CFG environment variable and can take a
-number of flags this way. DISCO_CFG is a ':' delimited set of key/value pairs
+number of flags this way. DISCO_CFG is a '|' delimited set of key/value pairs
 where the keys are namespaces via a '.'. Subsystems (disco and the various
 backends) then have values in their namespace available to them at runtime.
 
@@ -107,8 +107,22 @@ testing environment.
 
     $ tox
     $ . .tox/py35/bin/activate
-    $ env DISCO_CFG=flat.file=tests/mysql.yaml:disco.path=tests disco echo "doit"
+    $ env DISCO_CFG="flat.file=tests/mysql.yaml|disco.path=tests"" disco echo "doit"
 
+This should load the mysql data from a flat file in the tests dir, which will
+pass the schema, trigger a handler (also in the test dir) and then echo the
+command
+
+    $ curl -X PUT -d 'db.example.com' http://10.0.4.106:8500/v1/kv/mysql/host
+    $ curl -X PUT -d 'test' http://10.0.4.106:8500/v1/kv/mysql/username
+    $ curl -X PUT -d 'youshallnot' http://10.0.4.106:8500/v1/kv/mysql/password
+    $ curl -X PUT -d 'test' http://10.0.4.106:8500/v1/kv/mysql/database
+    $ env DISCO_CFG="consul.host=http://10.0.4.106:8500/|disco.path=tests|disco.interval=5" disco echo "doit"
+
+After after changing IP address in the above command to your consul this will
+pull the configuration information from consul like the previous example. With
+the consul ui (http://10.0.4.106/ui in this example) you can do into the KV
+store delete and add keys and see the changing behavior of disco.
 
 
 Debugging

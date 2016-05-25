@@ -23,12 +23,13 @@ def configure_logging(lvl):
             datefmt="%Y-%m-%d:%T",
             #  handlers=[logging.handlers.SysLogHandler()],
             level=lvl)
+    logging.getLogger("aioconsul.request").setLevel(logging.WARNING)
 
 
 def configure_from_env():
     cfg = os.environ["DISCO_CFG"]
     config = {}
-    for token in cfg.split(":"):
+    for token in cfg.split("|"):
         kv = token.split("=", 1)
         k = kv[0]
         if len(kv) != 2:
