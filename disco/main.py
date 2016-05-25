@@ -56,13 +56,15 @@ def main():
     r.find_rules()
     r.find_schemas()
     try:
-        loop.create_task(r())
-        loop.run_forever()
-
-        # Fork/Exec cmd
-        log.info("Container Configured")
-        log.info("Exec {}".format(options.cmd))
-        os.execvp(options.cmd[0], options.cmd)
+        config_task = loop.create_task(r())
+        loop.run_until_complete(config_task)
+        if config_task.result() is True:
+            # Fork/Exec cmd
+            log.info("Container Configured")
+            log.info("Exec {}".format(options.cmd))
+            os.execvp(options.cmd[0], options.cmd)
+        else:
+            log.critical("Unable to configure container, see log or run with -l DEBUG")
     finally:
         loop.close()
 

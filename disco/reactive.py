@@ -27,6 +27,7 @@ class Rule:
         # and validate by their schema
         self.deps = deps
         self.cmd = command
+        self._fail_ct = 0
 
     def __repr__(self):
         return "{}({}) -> {}".format(
@@ -58,7 +59,7 @@ class Rule:
 
         return True
 
-    async def execute(self, kb):
+    async def execute(self, kb, fail_limit=5):
         """Call the handler, the convention here is
         that all matched rules will be available as
         JSON data written to the handlers STDIN.
@@ -85,9 +86,14 @@ class Rule:
             log.debug(stdout.decode('utf-8'))
         if stderr:
             log.debug(stderr.decode('utf-8'))
-        if p.returncode is not 0:
-            # XXX clean up
-            raise OSError
+        self.complete = p.returncode is 0
+        if not self.complete:
+            self._fail_ct += 1
+        if fail_limit and self._fail_ct >= fail_limit:
+            raise RuntimeError(
+                    "Handler failing repeatedly with valid data: {}".format(
+                        self.cmd))
+        return self.complete
 
 
 class All(Rule):
@@ -138,6 +144,7 @@ class Reactive:
 
     async def run_once(self):
         complete = True
+        fail_limit = int(utils.nested_get(self.config, 'disco.fail_limit', 5))
         for rule in self.rules:
             if rule.complete:
                 continue
@@ -146,17 +153,30 @@ class Reactive:
                 complete = False
                 continue
             log.info("executing %s", rule)
-            await rule.execute(self.kb)
+            try:
+                complete = await rule.execute(self.kb, fail_limit)
+            except RuntimeError:
+                self.shutdown()
+                complete = False
+                break
         return complete
 
+    def shutdown(self):
+        self._should_run = False
+
     async def run(self, discover):
-        while True:
+        self._should_run = True
+        interval = float(utils.nested_get(
+            self.config, 'disco.interval', 1))
+        while self._should_run:
             complete = await self.run_once()
             if complete:
                 break
+            await asyncio.sleep(interval, loop=self.loop)
 
         # Do any tear down on the discovery services
         await discover.shutdown()
+        return complete
 
     async def __call__(self):
         # bring up the discovery task
@@ -165,4 +185,4 @@ class Reactive:
         rtask = self.loop.create_task(self.run(d))
         asyncio.wait([await dtask, await rtask])
         self.loop.stop()
-
+        return rtask.result()
