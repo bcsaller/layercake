@@ -105,9 +105,9 @@ Examples
 For now, examples assume you've installed tox and can run from inside its
 testing environment. 
 
-$ tox
-$ . .tox/py35/bin/activate
-$ env DISCO_CFG=flat.file=tests/mysql.yaml:disco.path=tests disco echo "doit"
+    $ tox
+    $ . .tox/py35/bin/activate
+    $ env DISCO_CFG=flat.file=tests/mysql.yaml:disco.path=tests disco echo "doit"
 
 
 
