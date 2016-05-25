@@ -63,9 +63,9 @@ class Beacon(Source):
 
 
 class Discover:
-    def __init__(self, loop=None):
+    def __init__(self, config=None, loop=None):
         self.loop = loop or asyncio.get_event_loop()
-        self.config = {}
+        self.config = config or {}
         self.sources = []
         self.schema = []
         self._hashes = {}  # source -> data_hash or None
@@ -73,9 +73,6 @@ class Discover:
         self.configure()
 
     def configure(self):
-        if self.config:
-            raise RuntimeError("Don't configure disco more than once")
-        self._parse()
         for source in self.config:
             if source == "disco":
                 # Used to configure self
@@ -92,23 +89,6 @@ class Discover:
             else:
                 raise ValueError("Unknown Disco Source {}".format(source))
             self.add_source(scls(**self.config[source]))
-
-    def _parse(self):
-        cfg = os.environ["DISCO_CFG"]
-        config = {}
-        for token in cfg.split(";"):
-            kv = token.split("=", 1)
-            k = kv[0]
-            if len(kv) != 2:
-                v = True
-            else:
-                v = kv[1]
-            o = config
-            parts = k.split(".")
-            for part in parts[:-1]:
-                o = o.setdefault(part, {})
-            o[parts[-1]] = v
-        self.config = config
 
     def add_source(self, source):
         self.sources.append(source)

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 import re
 import yaml
 
@@ -9,6 +10,7 @@ from pathlib import Path
 
 from . import discovery
 from . import knowledge
+from . import utils
 
 log = logging.getLogger("disco")
 _marker = object()
@@ -78,6 +80,11 @@ class Rule:
                 stderr=asyncio.subprocess.PIPE
                 )
         stdout, stderr = await p.communicate(data)
+        log.debug("Exec %s -> %d", self.cmd, p.returncode)
+        if stdout:
+            log.debug(stdout.decode('utf-8'))
+        if stderr:
+            log.debug(stderr.decode('utf-8'))
         if p.returncode is not 0:
             # XXX clean up
             raise OSError
@@ -92,7 +99,8 @@ class Any(Rule):
 
 
 class Reactive:
-    def __init__(self, loop=None):
+    def __init__(self, config=None, loop=None):
+        self.config = config or {}
         self.loop = loop if loop else asyncio.get_event_loop()
         self.rules = []
         self.kb = knowledge.Knowledge()
@@ -115,16 +123,16 @@ class Reactive:
         for d in yaml.load(filelike)['rules']:
             self.add_rule(d)
 
-    def find_rules(self, path):
-        path = Path(path)
-        for fn in path.glob("*.rules"):
-            self.load_rules(fn.open())
-
     def load_schema(self, filelike):
         self.kb.load_schema(filelike)
 
-    def find_schemas(self, path):
-        path = Path(path)
+    def find_rules(self):
+        path = Path(utils.nested_get(self.config, 'disco.path', os.getcwd()))
+        for fn in path.glob("*.rules"):
+            self.load_rules(fn.open())
+
+    def find_schemas(self):
+        path = Path(utils.nested_get(self.config, 'disco.path', os.getcwd()))
         for fn in path.glob("*.schema"):
             self.load_schema(fn.open())
 
@@ -152,7 +160,7 @@ class Reactive:
 
     async def __call__(self):
         # bring up the discovery task
-        d = discovery.Discover()
+        d = discovery.Discover(self.config)
         dtask = self.loop.create_task(d.watch(self.kb))
         rtask = self.loop.create_task(self.run(d))
         asyncio.wait([await dtask, await rtask])
