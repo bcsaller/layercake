@@ -1,9 +1,10 @@
 import unittest
 
 from utils import local_stream
-from disco.ingestion import Knowledge
+from disco.knowledge import Knowledge
 
-class TestIngestion(unittest.TestCase):
+
+class TestKnowledge(unittest.TestCase):
     def test_valid_yaml(self):
         kb = Knowledge()
         kb.load(local_stream("mysql.yaml"))

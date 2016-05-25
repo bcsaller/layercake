@@ -1,16 +1,16 @@
 import asyncio
-import glob
 import json
 import logging
-import os
 import re
 import yaml
+
 from collections import ChainMap
+from pathlib import Path
 
 from . import discovery
-from . import ingestion
+from . import knowledge
 
-log = logging.getLogger("reactive")
+log = logging.getLogger("disco")
 _marker = object()
 
 
@@ -41,19 +41,15 @@ class Rule:
         self._complete = bool(value)
 
     def _validate_schema(self, kb, d):
-        # XXX: This is a convention that occurs
-        # more than one place, Make this a
-        # formal systems rule
+        # XXX: Top level keyname to schema name is a convention that occurs
+        # more than one place, Make this a formal systems rule
         interface = d.split('.')[0]
         return kb.is_valid(interface, d)
 
-
     def match(self, kb):
-        # XXX: await the lock on the KB
         exists = [kb.get(d, _marker) is not _marker for d in self.deps]
         if not self.op(exists):
             return False
-
         valid = [self._validate_schema(kb, d) for d in self.deps]
         if not self.op(valid):
             return False
@@ -99,7 +95,7 @@ class Reactive:
     def __init__(self, loop=None):
         self.loop = loop if loop else asyncio.get_event_loop()
         self.rules = []
-        self.kb = ingestion.Knowledge()
+        self.kb = knowledge.Knowledge()
 
     def add_rule(self, definition):
         # simple rule parser
@@ -116,19 +112,21 @@ class Reactive:
         return rule
 
     def load_rules(self, filelike):
-        if isinstance(filelike, str):
-            filelike = open(filelike, "r")
         for d in yaml.load(filelike)['rules']:
             self.add_rule(d)
 
-    def find_rules(self):
-        for fn in glob.glob("*.rules"):
-            self.load_rules(fn)
+    def find_rules(self, path):
+        path = Path(path)
+        for fn in path.glob("*.rules"):
+            self.load_rules(fn.open())
 
-    def load_schemas(self, schemas):
-        if isinstance(schemas, str):
-            schemas = open(schemas, "r")
-        self.kb.load_schema(schemas)
+    def load_schema(self, filelike):
+        self.kb.load_schema(filelike)
+
+    def find_schemas(self, path):
+        path = Path(path)
+        for fn in path.glob("*.schema"):
+            self.load_schema(fn.open())
 
     async def run_once(self):
         complete = True
@@ -155,10 +153,8 @@ class Reactive:
     async def __call__(self):
         # bring up the discovery task
         d = discovery.Discover()
-        self.find_rules()
         dtask = self.loop.create_task(d.watch(self.kb))
         rtask = self.loop.create_task(self.run(d))
-        await dtask
-        await rtask
+        asyncio.wait([await dtask, await rtask])
         self.loop.stop()
 

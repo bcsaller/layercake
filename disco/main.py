@@ -2,22 +2,30 @@
 import argparse
 import asyncio
 import logging
+import logging.handlers
 import os
 
-from . import discovery, ingestion, reactive
+from . import reactive
+
+log = logging.getLogger("disco")
 
 
 def setup():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-r", "--rules")
-    parser.add_argument("-s", "--schemas")
+    parser.add_argument("-p", "--path",
+                        help="Path for disco files (*.rules, *.schema)",
+                        default=os.getcwd())
     parser.add_argument("-l", "--log-level", default=logging.INFO)
     parser.add_argument("cmd", nargs="+")
     return parser.parse_args()
 
 
 def configure_logging(lvl):
-    logging.basicConfig(level=lvl)
+    logging.basicConfig(
+            format="%(asctime)s: %(module)s.%(funcName)s:%(lineno)s: %(message)s",  # noqa
+            datefmt="%Y-%m-%d:%T",
+            #  handlers=[logging.handlers.SysLogHandler()],
+            level=lvl)
 
 
 def main():
@@ -27,15 +35,15 @@ def main():
     configure_logging(options.log_level)
 
     r = reactive.Reactive(loop=loop)
-    r.load_rules(options.rules)
-    r.load_schemas(options.schemas)
+    r.find_rules(options.path)
+    r.find_schemas(options.path)
     try:
         loop.create_task(r())
         loop.run_forever()
 
         # Fork/Exec cmd
-        logging.info("Container Configured")
-        logging.info("Exec {}".format(options.cmd))
+        log.info("Container Configured")
+        log.info("Exec {}".format(options.cmd))
         os.execvp(options.cmd[0], options.cmd)
     finally:
         loop.close()

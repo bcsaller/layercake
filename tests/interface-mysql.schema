@@ -1,14 +1,15 @@
 type: object
 name: mysql
 properties:
-    - interface:
+    interface:
         type: string
-    - host:
+    host:
         type: string
-    - username:
+    username:
         type: string
-    - password:
+    password:
         type: string
-    - database:
+    database:
         type: string
+required: [host, username, password, database]
 

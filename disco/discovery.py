@@ -3,9 +3,13 @@ import logging
 import os
 import yaml
 
+
+from aioconsul import Consul
+
 from .utils import make_hash
 
 log = logging.getLogger("disco")
+
 
 class Source:
     """Interface for discovery sources"""
@@ -25,7 +29,7 @@ class Source:
         return None
 
     async def disconnect(self):
-        """Cleanly shutdown any watches, pollers or connections"""
+        """Cleanly shutdown any watches, polls or connections"""
         pass
 
     async def State(self):
@@ -41,8 +45,13 @@ class FlatFile(Source):
         return self.state
 
 
-class Consul(Source):
-    pass
+class ConsulSource(Source):
+    async def connect(self):
+        self.client = Consul(**self.config)
+
+    async def State(self):
+        result = await self.client.kv.keys(self.config.get('prefix', ''))
+        return result
 
 
 class Etcd(Source):
@@ -53,14 +62,13 @@ class Beacon(Source):
     pass
 
 
-
 class Discover:
     def __init__(self, loop=None):
         self.loop = loop or asyncio.get_event_loop()
         self.config = {}
         self.sources = []
         self.schema = []
-        self._hashes = {} #  source -> data_hash or None
+        self._hashes = {}  # source -> data_hash or None
         self._running = False
         self.configure()
 
@@ -70,13 +78,13 @@ class Discover:
         self._parse()
         for source in self.config:
             if source == "disco":
-                # Used to config self
+                # Used to configure self
                 continue
             if source == "beacon":
-                scls = Consul
+                scls = ConsulSource
                 self.config[source].setdefault('name', 'beacon')
             elif source == "consul":
-                scls = Consul
+                scls = ConsulSource
             elif source == "etcd":
                 scls = Etcd
             elif source == "flat":
@@ -116,7 +124,10 @@ class Discover:
             existing_hash = self._hashes.get(source.name, None)
             cur_hash = make_hash(state)
             if existing_hash != cur_hash:
-                log.debug("Inject {}".format(state))
+                # Only show keys here as secrets are in the data
+                log.debug("Learn {} from {}".format(
+                    sorted(state.keys()),
+                    source.name))
                 knowledge.inject(state)
                 self._hashes[source.name] = cur_hash
 

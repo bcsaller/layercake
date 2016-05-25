@@ -1,10 +1,9 @@
 import unittest
-import asyncio
 import pkg_resources
 
 from utils import local_stream
 
-from disco.ingestion import Knowledge
+from disco.knowledge import Knowledge
 from disco import reactive
 
 

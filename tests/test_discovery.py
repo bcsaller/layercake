@@ -1,12 +1,10 @@
 import asyncio
-import os
-import pkg_resources
 import unittest
 
 from utils import local_file, Environ
 
 from disco import discovery
-from disco.ingestion import Knowledge
+from disco.knowledge import Knowledge
 
 
 class TestDiscovery(unittest.TestCase):

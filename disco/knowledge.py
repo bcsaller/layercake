@@ -1,6 +1,10 @@
-from collections import ChainMap
 import jsonschema
+import logging
 import yaml
+
+from collections import ChainMap
+
+log = logging.getLogger("disco")
 
 
 class Knowledge:
@@ -37,12 +41,14 @@ class Knowledge:
     def validate(self, schema, path=None):
         schema = self['schemas.{}'.format(schema)]
         obj = self[path] if path else self.map
-        jsonschema.validate(schema, obj)
+        jsonschema.validate(obj, schema)
+        logging.debug("Validated {}".format(schema['name']))
 
     def is_valid(self, schema, path=None):
         try:
             self.validate(schema, path)
-        except jsonschema.ValidationError:
+        except jsonschema.ValidationError as e:
+            logging.debug(exc_info=e)
             return False
         except KeyError:
             return False
