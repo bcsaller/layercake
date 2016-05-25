@@ -10,7 +10,7 @@ from disco.main import configure_from_env
 
 class TestDiscovery(unittest.TestCase):
     def test_discovery_cfg(self):
-        with Environ(DISCO_CFG="consul.host=foo:consul.user=bar"):
+        with Environ(DISCO_CFG="consul.host=foo|consul.user=bar"):
             d = discovery.Discover(configure_from_env())
         self.assertEquals(d.config, {"consul": {
             "host": "foo", "user": "bar"}})
