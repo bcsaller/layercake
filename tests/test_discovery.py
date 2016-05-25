@@ -5,15 +5,15 @@ from utils import local_file, Environ
 
 from disco import discovery
 from disco.knowledge import Knowledge
+from disco.main import configure_from_env
 
 
 class TestDiscovery(unittest.TestCase):
     def test_discovery_cfg(self):
-        with Environ(DISCO_CFG="consul.host=foo;consul.user=bar"):
-            d = discovery.Discover()
+        with Environ(DISCO_CFG="consul.host=foo:consul.user=bar"):
+            d = discovery.Discover(configure_from_env())
         self.assertEquals(d.config, {"consul": {
             "host": "foo", "user": "bar"}})
-
 
     def test_discovery(self):
         self.loop = asyncio.new_event_loop()
@@ -22,7 +22,7 @@ class TestDiscovery(unittest.TestCase):
 
         with Environ(DISCO_CFG="flat.file={}".format(
                 local_file("mysql.yaml"))):
-            d = discovery.Discover()
+            d = discovery.Discover(configure_from_env())
             # low-level API to directly populate
             kb = Knowledge()
             self.loop.run_until_complete(d.populate(kb))

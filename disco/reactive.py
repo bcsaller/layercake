@@ -59,7 +59,7 @@ class Rule:
 
         return True
 
-    async def execute(self, kb, fail_limit=5):
+    async def execute(self, kb, path=None, fail_limit=5):
         """Call the handler, the convention here is
         that all matched rules will be available as
         JSON data written to the handlers STDIN.
@@ -68,25 +68,33 @@ class Rule:
         foo will be passed to the handler as JSON.
         """
         data = ChainMap()
+        path = path or os.getcwd()
         for d in self.deps:
             interface = d.split('.')[0]
             if self._validate_schema(kb, d):
                 data = data.new_child(kb.get(interface))
 
         data = json.dumps(dict(data)).encode('utf-8')
-        p = await asyncio.create_subprocess_exec(
-                self.cmd,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-                )
-        stdout, stderr = await p.communicate(data)
-        log.debug("Exec %s -> %d", self.cmd, p.returncode)
-        if stdout:
-            log.debug(stdout.decode('utf-8'))
-        if stderr:
-            log.debug(stderr.decode('utf-8'))
-        self.complete = p.returncode is 0
+        try:
+            p = await asyncio.create_subprocess_exec(
+                    self.cmd,
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    env={"PATH": path}
+                    )
+            stdout, stderr = await p.communicate(data)
+            log.debug("Exec %s -> %d", self.cmd, p.returncode)
+            if stdout:
+                log.debug(stdout.decode('utf-8'))
+            if stderr:
+                log.debug(stderr.decode('utf-8'))
+            self.complete = p.returncode is 0
+        except FileNotFoundError:
+            log.warn("Handler: {} not on path: {}".format(
+                self.cmd, path))
+            self.complete = False
+
         if not self.complete:
             self._fail_ct += 1
         if fail_limit and self._fail_ct >= fail_limit:
@@ -145,6 +153,7 @@ class Reactive:
     async def run_once(self):
         complete = True
         fail_limit = int(utils.nested_get(self.config, 'disco.fail_limit', 5))
+        path = utils.nested_get(self.config, 'disco.path')
         for rule in self.rules:
             if rule.complete:
                 continue
@@ -154,7 +163,10 @@ class Reactive:
                 continue
             log.info("executing %s", rule)
             try:
-                complete = await rule.execute(self.kb, fail_limit)
+                complete = await rule.execute(
+                        self.kb,
+                        path=path,
+                        fail_limit=fail_limit)
             except RuntimeError:
                 self.shutdown()
                 complete = False

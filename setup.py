@@ -2,16 +2,18 @@
 #
 # Copyright 2016 Canonical Ltd.  This software is licensed under the
 # Apache License, Version 2.0
-
+from pip.req import parse_requirements
 from setuptools import setup, find_packages
 
+install_reqs = parse_requirements("requirements.txt", session=False)
+reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
     name='disco',
     version="0.1.0",
     packages=find_packages(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
-    install_requires=[],
+    install_requires=reqs,
     include_package_data=True,
     maintainer='Benjamin Saller',
     maintainer_email='benjamin.saller@canonical.com',

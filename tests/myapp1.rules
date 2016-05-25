@@ -1,3 +1,3 @@
 rules:
   - when: mysql
-    do: ./tests/mysql-configure
+    do: mysql-configure
