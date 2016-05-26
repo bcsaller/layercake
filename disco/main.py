@@ -4,6 +4,7 @@ import asyncio
 import logging
 import logging.handlers
 import os
+import yaml
 
 from . import reactive
 
@@ -26,9 +27,15 @@ def configure_logging(lvl):
     logging.getLogger("aioconsul.request").setLevel(logging.WARNING)
     logging.getLogger("aio_etcd.client").setLevel(logging.WARNING)
 
+def configure_from_file(name="disco.cfg"):
+    config = {}
+    if os.path.exists(name):
+        config.update(yaml.load(open(name, 'r')))
+    return config
 
-def configure_from_env():
-    cfg = os.environ["DISCO_CFG"]
+
+def configure_from_env(envstr=None):
+    cfg = envstr or os.environ.get("DISCO_CFG")
     config = {}
     for token in cfg.split("|"):
         kv = token.split("=", 1)
@@ -45,16 +52,15 @@ def configure_from_env():
     return config
 
 
-
 def main():
     loop = asyncio.get_event_loop()
     loop.set_debug(False)
     options = setup()
     configure_logging(options.log_level)
-    config = configure_from_env()
+    config = configure_from_file()
+    config.update(configure_from_env())
 
     r = reactive.Reactive(config, loop=loop)
-    # These expect DISCO_CFG=disco.path=... pr cwd
     r.find_rules()
     r.find_schemas()
     try:
