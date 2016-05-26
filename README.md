@@ -97,6 +97,16 @@ backends) then have values in their namespace available to them at runtime.
   ----
   flat.file: (path) SCnfigure the flat file source with a configuration file in YAML
 
+  Consul
+  ------
+  consul.host: (str) http://addr:port
+
+  Etcd
+  ----
+  etcd.host: (str) addr
+  etcd.port: (int) port
+
+
 
 
 Examples

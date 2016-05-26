@@ -2,3 +2,4 @@ pytest
 pyyaml
 jsonschema
 aioconsul
+git+https://github.com/M-o-a-T/python-aio-etcd

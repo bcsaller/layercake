@@ -5,6 +5,7 @@
 from pip.req import parse_requirements
 from setuptools import setup, find_packages
 
+# ignored for now, we include a git repo directly
 install_reqs = parse_requirements("requirements.txt", session=False)
 reqs = [str(ir.req) for ir in install_reqs]
 
@@ -13,7 +14,7 @@ setup(
     version="0.1.0",
     packages=find_packages(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
-    install_requires=reqs,
+    install_requires=[],
     include_package_data=True,
     maintainer='Benjamin Saller',
     maintainer_email='benjamin.saller@canonical.com',

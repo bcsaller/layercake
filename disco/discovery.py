@@ -5,6 +5,7 @@ import yaml
 
 
 from aioconsul import Consul
+from aio_etcd import Client as EtcdClient
 
 from .utils import make_hash
 
@@ -64,10 +65,27 @@ class ConsulSource(Source):
 
 
 class Etcd(Source):
-    pass
+    async def connect(self):
+        self.config['port'] = int(self.config.get('port', 4001))
+        self.client = EtcdClient(**self.config)
+
+    async def State(self):
+        result = await self.client.read(
+                self.config.get("prefix", ""),
+                recursive=True)
+        state = {}
+        for leaf in result.leaves:
+            o = state
+            if "/" in leaf.key:
+                parts = [p for p in leaf.key.split("/") if p]
+                for p in parts[:-1]:
+                    o = o.setdefault(p, {})
+                k = parts[-1]
+            o[k] = leaf.value
+        return state
 
 
-class Beacon(Source):
+class Beacon(ConsulSource):
     pass
 
 
@@ -84,7 +102,7 @@ class Discover:
     def configure(self):
         for source in self.config:
             if source == "disco":
-                # Used to configure self
+                # Used to configure main application
                 continue
             if source == "beacon":
                 scls = ConsulSource

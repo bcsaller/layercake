@@ -24,6 +24,7 @@ def configure_logging(lvl):
             #  handlers=[logging.handlers.SysLogHandler()],
             level=lvl)
     logging.getLogger("aioconsul.request").setLevel(logging.WARNING)
+    logging.getLogger("aio_etcd.client").setLevel(logging.WARNING)
 
 
 def configure_from_env():
