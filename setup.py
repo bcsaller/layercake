@@ -27,7 +27,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-                'disco = disco.main:main'
+                'disco = disco.main:main',
+                'cake = disco.cake:main',
         ],
     },
 )

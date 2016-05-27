@@ -27,7 +27,8 @@ def configure_logging(lvl):
     logging.getLogger("aioconsul.request").setLevel(logging.WARNING)
     logging.getLogger("aio_etcd.client").setLevel(logging.WARNING)
 
-def configure_from_file(name="disco.cfg"):
+
+def configure_from_file(name="disco.conf"):
     config = {}
     if os.path.exists(name):
         config.update(yaml.load(open(name, 'r')))

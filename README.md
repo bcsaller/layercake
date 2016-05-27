@@ -107,6 +107,31 @@ backends) then have values in their namespace available to them at runtime.
   etcd.port: (int) port
 
 
+Layers
+======
+
+Once you have an idea about how to configure your container it would be nice if
+you could share and collaborate around the code required to do this. A layer,
+in this context, are the rules, schema handlers and assets needed to configure
+some aspect of a container.
+
+For some container application the configuration is custom, for example, how to
+configure yourself as a client of mysql, but then layer might still include
+useful code you can use in your handler. It can always include verification
+that your being passed the agreed upon data by setting up the proper schema and
+rules.
+
+Great applications are composed of many concerns, each of these can be modeled
+in a layer and then the shared bits can be collaborated around so you can
+always ensure a tasteful experience with your container.  
+
+Along those lines we include a tool called 'cake', 'Container assembly kit
+extraordinaire'. This can be used to resolve layers from a public, central
+index and easily include them into your container at build time.
+
+For example in a Dockerfile you might say
+
+    RUN cake layer:<layer-name>
 
 
 Examples
@@ -133,6 +158,11 @@ After after changing IP address in the above command to your consul this will
 pull the configuration information from consul like the previous example. With
 the consul ui (http://10.0.4.106/ui in this example) you can do into the KV
 store delete and add keys and see the changing behavior of disco.
+
+
+Disco is intended to replace the CMD in your Dockerfile, this can be done by prefixing the cmd with disco.
+
+    CMD = disco <original cmd>
 
 
 Debugging
