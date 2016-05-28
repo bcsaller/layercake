@@ -19,7 +19,9 @@ def layer_get_metadata(
         apiendpoint="layer"):
     uri = "/".join([api, apiver, apiendpoint, name])
     try:
-        result = requests.get(uri)
+        # Filter the results to only those layers which are
+        # targeted to runC containers
+        result = requests.get(uri, params={"q": "kind:runC"})
     except:
         result = None
     if result and result.ok:
