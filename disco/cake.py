@@ -127,19 +127,33 @@ class Cake:
 
 def setup():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
+    parser.add_argument("-l", "--log-level", default=logging.INFO)
+    parsers = parser.add_subparsers()
+    layer = parsers.add_parser("layer")
+    layer.add_argument("-d", "--directory", default=Path.cwd())
+    layer.add_argument("-f", "--force", action="store_true",
+                        help=("Force overwrite of existing layers "
+                              "in directory (-d)"))
+    layer.add_argument("-n", "--no-install", action="store_true",
+                        help=("when set exit after pulling layers, "
+                              "and before the install phase"))
+
+    layer.add_argument(
             "layer",
             nargs="+",
             help=("The name of the layer to include, if more "
                   "than one is provided they will be included in order"))
-    parser.add_argument("-l", "--log-level", default=logging.INFO)
-    parser.add_argument("-d", "--directory", default=Path.cwd())
-    parser.add_argument("-f", "--force", action="store_true",
-                        help=("Force overwrite of existing layers "
-                              "in directory (-d)"))
-    parser.add_argument("-n", "--no-install", action="store_true",
-                        help=("when set exit after pulling layers, "
-                              "and before the install phase"))
+    layer.set_defaults(func=layer)
+
+
+    baker = parsers.add_parser("bake")
+    baker.add_argument("-d", "--dockerfile",
+                       help="Dockerfile to process",
+                       )
+    baker.add_argument("config",
+                        nargs="?",
+                        default="cake.conf")
+    baker.set_defaults(func=bake)
 
     options = parser.parse_args()
     return options
@@ -149,14 +163,28 @@ def setupLogging(options):
     logging.basicConfig(level=options.log_level)
 
 
-def main():
-    options = setup()
-    setupLogging(options)
+def layer(options):
     cake = Cake(options)
     cake.fetch_all()
     if options.no_install:
         return
     cake.install()
+
+
+def bake(options):
+    config = yaml.locad(open(options.config))
+    df = Dockerfile(options.dockerfile)
+
+    # In this mode we are adding run cmds for each
+    # layer in the cfg file (those may pull other layers)
+    # then we output a new docker file and docker build the
+    # new container.
+
+
+def main():
+    options = setup()
+    setupLogging(options)
+    options.func(options)
 
 if __name__ == '__main__':
     main()
