@@ -2,12 +2,12 @@
 #
 # Copyright 2016 Canonical Ltd.  This software is licensed under the
 # Apache License, Version 2.0
-from pip.req import parse_requirements
+#from pip.req import parse_requirements
 from setuptools import setup, find_packages
 
 # ignored for now, we include a git repo directly
-install_reqs = parse_requirements("requirements.txt", session=False)
-reqs = [str(ir.req) for ir in install_reqs]
+#install_reqs = parse_requirements("requirements.txt", session=False)
+#reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
     name='layercake',
