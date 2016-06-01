@@ -20,12 +20,13 @@ def setup():
 
 def configure_logging(lvl):
     logging.basicConfig(
-            format="%(asctime)s: %(module)s.%(funcName)s:%(lineno)s: %(message)s",  # noqa
+            format="%(asctime)s: %(name)s %(module)s.%(funcName)s:%(lineno)s: %(message)s",  # noqa
             datefmt="%Y-%m-%d:%T",
             #  handlers=[logging.handlers.SysLogHandler()],
             level=lvl)
     logging.getLogger("aioconsul.request").setLevel(logging.WARNING)
     logging.getLogger("aio_etcd.client").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 def configure_from_file(name="disco.conf"):

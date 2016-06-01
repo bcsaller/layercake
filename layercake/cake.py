@@ -1,6 +1,7 @@
 import argparse
 import logging
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -14,6 +15,7 @@ from pathlib import Path
 
 from layercake import dockerfile
 from layercake.disco import configure_logging
+from layercake.utils import nested_get
 
 from docker import Client as DockerClient
 
@@ -22,8 +24,7 @@ log = logging.getLogger("cake")
 
 def layer_get_metadata(
         name,
-        #api="http://interfaces.juju.solutions",
-        api="http://localhost:9999",
+        api="http://interfaces.juju.solutions",
         apiver="api/v2",
         apiendpoint="layer"):
     uri = "/".join([api, apiver, apiendpoint, name])
@@ -50,6 +51,12 @@ class Layer:
         self.metadata = metadata
         self.dir = None
         self._config = {}
+
+    @classmethod
+    def from_path(cls, path):
+        ins = cls({})
+        ins.dir = path
+        return ins
 
     def fetch(self, todir, overwrite_target=False):
         repo = self.metadata['repo']
@@ -100,7 +107,9 @@ class Layer:
     def install(self):
         installer = self.dir / "install"
         if installer.exists():
-            subprocess.check_output(installer)
+            output = subprocess.check_output(str(installer.resolve()))
+            log.info("Executed installer for %s", self.config['layer']['name'])
+            log.debug(output.decode("utf-8"))
 
 
 class Cake:
@@ -108,13 +117,21 @@ class Cake:
         self.layer_names = options.layer
         self.directory = options.directory
         self.force_overwrite = options.force
+        self.api_endpoint = options.layer_endpoint.rstrip("/")
+        self.scan_cakepath()
 
     def fetch_layer(self, name, resolving):
         if resolving.get(name):
             return resolving[name]
-        metadata = layer_get_metadata(name)
-        layer = Layer(metadata)
-        layer.fetch(self.directory, self.force_overwrite)
+
+        if name in self.cake_map:
+            # Construct and register a layer from the
+            # directory
+            layer = Layer.from_path(self.cake_map[name])
+        else:
+            metadata = layer_get_metadata(name, api=self.api_endpoint)
+            layer = Layer(metadata)
+            layer.fetch(self.directory, self.force_overwrite)
         # Now create a resolving entry for any layers this includes
         for dep in layer.config.get('layers', []):
             if dep not in resolving:
@@ -135,11 +152,34 @@ class Cake:
                 self.fetch_layer(name, resolving)
         self.layers = resolving
 
+    def scan_cakepath(self):
+        cake_map = {}  # layername -> Path
+        CAKE_PATH = os.environ.get("CAKE_PATH", "")
+        CAKE_PATH = CAKE_PATH.split(":")
+        if CAKE_PATH:
+            for cake_segment in CAKE_PATH:
+                # Build a last write wins map of layer to directory information
+                # we can search for the name of the layer in this path ignoring
+                # the repo (and the repo subpath, as finding the layers.yaml in
+                # a nested structure without metadata is too intensive)
+                p = Path(cake_segment)
+                for layerdir in p.iterdir():
+                    cfg = layerdir / "layer.yaml"
+                    if layerdir.is_dir() and cfg.exists():
+                        # This appears to be a layer
+                        cfg = yaml.load(cfg.open())
+                        layername = nested_get(cfg, "layer.name")
+                        cake_map[layername] = layerdir
+
+        self.cake_map = cake_map
+        log.debug("Found local Layers %s", sorted(self.cake_map.items()))
+
     def install(self):
-        for layer in self.layers:
+        for layer in self.layers.values():
             layer.install()
 
-def layer(options):
+
+def layer_main(options):
     cake = Cake(options)
     cake.fetch_all()
     if options.no_install:
@@ -147,7 +187,7 @@ def layer(options):
     cake.install()
 
 
-def bake(options):
+def bake_main(options):
     """Munge a dockerfile from a cfg
 
     cake:
@@ -190,8 +230,12 @@ def setup():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--log-level", default=logging.INFO)
     parser.set_defaults(func=lambda options: parser.print_help())
+
     parsers = parser.add_subparsers()
     layer = parsers.add_parser("layer")
+    layer.add_argument("--layer-endpoint",
+            help="API endpoint for metadata",
+            default="http://interfaces.juju.solutions")
     layer.add_argument("-d", "--directory", default=Path.cwd())
     layer.add_argument("-f", "--force", action="store_true",
                         help=("Force overwrite of existing layers "
@@ -205,7 +249,7 @@ def setup():
             nargs="+",
             help=("The name of the layer to include, if more "
                   "than one is provided they will be included in order"))
-    layer.set_defaults(func=layer)
+    layer.set_defaults(func=layer_main)
 
     baker = parsers.add_parser("bake")
     baker.add_argument("-d", "--dockerfile",
@@ -216,7 +260,7 @@ def setup():
     baker.add_argument("config",
                        nargs="?",
                        default="cake.conf")
-    baker.set_defaults(func=bake)
+    baker.set_defaults(func=bake_main)
 
     options = parser.parse_args()
     return options
