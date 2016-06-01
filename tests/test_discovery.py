@@ -3,9 +3,9 @@ import unittest
 
 from utils import local_file, Environ
 
-from disco import discovery
-from disco.knowledge import Knowledge
-from disco.main import configure_from_env
+from layercake import discovery
+from layercake.disco import configure_from_env
+from layercake.knowledge import Knowledge
 
 
 class TestDiscovery(unittest.TestCase):

@@ -3,8 +3,8 @@ import pkg_resources
 
 from utils import local_stream
 
-from disco.knowledge import Knowledge
-from disco import reactive
+from layercake.knowledge import Knowledge
+from layercake import reactive
 
 
 class TestReactive(unittest.TestCase):

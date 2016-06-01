@@ -1,5 +1,6 @@
 import argparse
 import logging
+import json
 import shutil
 import subprocess
 import tempfile
@@ -8,7 +9,15 @@ import requests
 import yaml
 
 from collections import OrderedDict
+from io import BytesIO
 from pathlib import Path
+
+from disco import dockerfile
+from disco.disco import configure_logging
+
+from docker import Client as DockerClient
+
+log = logging.getLogger("cake")
 
 
 def layer_get_metadata(
@@ -88,6 +97,11 @@ class Layer:
             self._config = {}
         return self._config
 
+    def install(self):
+        installer = self.dir / "install"
+        if installer.exists():
+            subprocess.check_output(installer)
+
 
 class Cake:
     def __init__(self, options):
@@ -122,7 +136,54 @@ class Cake:
         self.layers = resolving
 
     def install(self):
-        pass
+        for layer in self.layers:
+            layer.install()
+
+def layer(options):
+    cake = Cake(options)
+    cake.fetch_all()
+    if options.no_install:
+        return
+    cake.install()
+
+
+def bake(options):
+    """Munge a dockerfile from a cfg
+
+    cake:
+        layers: []
+    """
+    config = yaml.load(open(options.config))['cake']
+    df = dockerfile.Dockerfile(options.dockerfile)
+
+    # In this mode we are adding run cmds for each
+    # layer in the cfg file (those may pull other layers)
+    # then we output a new docker file and docker build the
+    # new container.
+
+    last_run = df.last("RUN")
+    df.add("RUN", ['pip', 'install', '-e', 'layercake'], at=last_run)
+    for layer_name in config['layers']:
+        last_run = df.last("RUN")
+        df.add("RUN", ['cake', 'layer', layer_name], at=last_run)
+
+    # we might have an entrypoint
+    # or a command (or both)
+    if df.entrypoint:
+        df.entrypoint = ["/usr/bin/disco"] + df.entrypoint['args']
+
+    if not options.no_build:
+        client = DockerClient()
+        f = BytesIO(str(df).encode("utf-8"))
+        response = client.build(fileobj=f, tag="layercake/disco")
+        for line in response:
+            line = json.loads(line.decode("utf-8"))
+            if 'errorDetail' in line:
+                log.critical(line['errorDetail']['message'].strip())
+            elif 'stream' in line:
+                log.info(line['stream'].strip())
+    else:
+        print(df)
 
 
 def setup():
@@ -145,45 +206,24 @@ def setup():
                   "than one is provided they will be included in order"))
     layer.set_defaults(func=layer)
 
-
     baker = parsers.add_parser("bake")
     baker.add_argument("-d", "--dockerfile",
                        help="Dockerfile to process",
                        )
+    baker.add_argument("-b", "--no-build", action="store_true",
+                       help="Don't build Dockerfile")
     baker.add_argument("config",
-                        nargs="?",
-                        default="cake.conf")
+                       nargs="?",
+                       default="cake.conf")
     baker.set_defaults(func=bake)
 
     options = parser.parse_args()
     return options
 
 
-def setupLogging(options):
-    logging.basicConfig(level=options.log_level)
-
-
-def layer(options):
-    cake = Cake(options)
-    cake.fetch_all()
-    if options.no_install:
-        return
-    cake.install()
-
-
-def bake(options):
-    config = yaml.locad(open(options.config))
-    df = Dockerfile(options.dockerfile)
-
-    # In this mode we are adding run cmds for each
-    # layer in the cfg file (those may pull other layers)
-    # then we output a new docker file and docker build the
-    # new container.
-
-
 def main():
     options = setup()
-    setupLogging(options)
+    configure_logging(options.log_level)
     options.func(options)
 
 if __name__ == '__main__':

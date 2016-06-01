@@ -10,7 +10,7 @@ install_reqs = parse_requirements("requirements.txt", session=False)
 reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
-    name='disco',
+    name='layercale',
     version="0.1.0",
     packages=find_packages(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
@@ -27,8 +27,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-                'disco = disco.main:main',
-                'cake = disco.cake:main',
+                'disco = layercake.disco:main',
+                'cake = layercake.cake:main',
         ],
     },
 )

@@ -36,9 +36,12 @@ def configure_from_file(name="disco.conf"):
 
 
 def configure_from_env(envstr=None):
-    cfg = envstr or os.environ.get("DISCO_CFG")
+    cfg = envstr or os.environ.get("DISCO_CFG", "")
     config = {}
     for token in cfg.split("|"):
+        token = token.strip()
+        if not token:
+            continue
         kv = token.split("=", 1)
         k = kv[0]
         if len(kv) != 2:
@@ -60,7 +63,6 @@ def main():
     configure_logging(options.log_level)
     config = configure_from_file()
     config.update(configure_from_env())
-
     r = reactive.Reactive(config, loop=loop)
     r.find_rules()
     r.find_schemas()

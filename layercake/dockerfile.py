@@ -76,6 +76,28 @@ class Dockerfile(list):
     def __getitem__(self, key):
         return [i['args'] for i in self.find(key, find_all=True)]
 
+    def last(self, token):
+        for i, line in reversed(list(enumerate(self))):
+            if line['token'] == token:
+                return i
+        return None
+
+    def add(self, cmd, args, at=None):
+        is_json = False
+        if isinstance(args, str) and args.startswith('['):
+            args = json.loads(args)
+            is_json = True
+        elif not isinstance(args, str):
+            is_json = True
+        if at:
+            def adder(x):
+                self.insert(at + 1, x)
+        else:
+            adder = self.append
+        new = dict(token=cmd, args=args, key=uuid4().hex, is_json=is_json)
+        adder(new)
+
+
     @property
     def cmd(self):
         return self.find("CMD", reverse=True)

@@ -114,7 +114,7 @@ class Discover:
             elif source == "flat":
                 scls = FlatFile
             else:
-                raise ValueError("Unknown Disco Source {}".format(source))
+                raise ValueError("Unknown Disco Source {!r}".format(source))
             self.add_source(scls(self.config[source]))
 
     def add_source(self, source):

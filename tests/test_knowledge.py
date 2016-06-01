@@ -1,7 +1,7 @@
 import unittest
 
 from utils import local_stream
-from disco.knowledge import Knowledge
+from layercake.knowledge import Knowledge
 
 
 class TestKnowledge(unittest.TestCase):
