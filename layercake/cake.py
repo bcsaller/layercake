@@ -12,8 +12,8 @@ from collections import OrderedDict
 from io import BytesIO
 from pathlib import Path
 
-from disco import dockerfile
-from disco.disco import configure_logging
+from layercake import dockerfile
+from layercake.disco import configure_logging
 
 from docker import Client as DockerClient
 
@@ -189,6 +189,7 @@ def bake(options):
 def setup():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--log-level", default=logging.INFO)
+    parser.set_defaults(func=lambda options: parser.print_help())
     parsers = parser.add_subparsers()
     layer = parsers.add_parser("layer")
     layer.add_argument("-d", "--directory", default=Path.cwd())
@@ -210,7 +211,7 @@ def setup():
     baker.add_argument("-d", "--dockerfile",
                        help="Dockerfile to process",
                        )
-    baker.add_argument("-b", "--no-build", action="store_true",
+    baker.add_argument("-n", "--no-build", action="store_true",
                        help="Don't build Dockerfile")
     baker.add_argument("config",
                        nargs="?",
