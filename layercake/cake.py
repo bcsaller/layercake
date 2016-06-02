@@ -1,6 +1,6 @@
 import argparse
-import logging
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -99,16 +99,21 @@ class Layer:
             raise OSError("Layer %s has not be fetched")
         cfg = Path(self.dir) / "layer.yaml"
         if cfg.exists():
-            self._config = yaml.load(cfg.open())
+            self._config = yaml.load(cfg.open())['layer']
         else:
             self._config = {}
         return self._config
 
-    def install(self):
+    @property
+    def name(self):
+        return self.config['name']
+
+    def install(self, layerdir):
         installer = self.dir / "install"
+        shutil.copytree(str(self.dir), str(layerdir / self.name))
         if installer.exists():
             output = subprocess.check_output(str(installer.resolve()))
-            log.info("Executed installer for %s", self.config['layer']['name'])
+            log.info("Executed installer for %s", self.name)
             log.debug(output.decode("utf-8"))
 
 
@@ -175,8 +180,13 @@ class Cake:
         log.debug("Found local Layers %s", sorted(self.cake_map.items()))
 
     def install(self):
+        # There are some implicit rules usedd
+        # during the install
+        # layer install will copy *.{schema,rules} to layerdir
+        layerdir = Path('/usr/share/layercake/layers').mkdir(
+                parents=True, exists_ok=True)
         for layer in self.layers.values():
-            layer.install()
+            layer.install(layerdir)
 
 
 def layer_main(options):
@@ -202,7 +212,7 @@ def bake_main(options):
     # new container.
 
     last_run = df.last("RUN")
-    df.add("RUN", ['pip', 'install', '-e', 'layercake'], at=last_run)
+    df.add("RUN", ['pip', 'install', '--upgrade', 'layercake'], at=last_run)
     for layer_name in config['layers']:
         last_run = df.last("RUN")
         df.add("RUN", ['cake', 'layer', layer_name], at=last_run)
@@ -211,6 +221,8 @@ def bake_main(options):
     # or a command (or both)
     if df.entrypoint:
         df.entrypoint = ["/usr/bin/disco"] + df.entrypoint['args']
+
+
 
     if not options.no_build:
         client = DockerClient()
@@ -223,10 +235,11 @@ def bake_main(options):
             elif 'stream' in line:
                 log.info(line['stream'].strip())
     else:
-        print(df)
+        log.debug(df)
+        return df
 
 
-def setup():
+def setup(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--log-level", default=logging.INFO)
     parser.set_defaults(func=lambda options: parser.print_help())
@@ -262,7 +275,7 @@ def setup():
                        default="cake.conf")
     baker.set_defaults(func=bake_main)
 
-    options = parser.parse_args()
+    options = parser.parse_args(args)
     return options
 
 

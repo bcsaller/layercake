@@ -1,13 +1,28 @@
-DISCO
-=====
+Layer-Cake
+==========
 
-(Docker Inspired Slice of COmpute Discovery Service)
+Layer cake is a suite of tools for building, maintaining and configuring
+containers. Container configuration is designed to be formalized around various
+service discovery sources with schemas to validate incoming data for
+correctness and rules to decide how to configure the container.
 
-Use various service discovery backends and handlers to configure a container at
+- disco Docker Inspired Slice of COmpute  - Discovery Service
+- cake  Container Assemble Kit Extraordinaire
+
+Use various service discovery sources and handlers to configure a container at
 runtime. Disco will poll/watch various configured sources, validate the
 configuration data according to various schema and then match various rules to
 dispatch handlers within the container. If all the rules have been completed
 successfully disco will exit by exec'ing the containers primary command.
+
+Installation
+============
+
+Layercake depends on Python 3.5+
+
+
+    pip3 install layercake
+
 
 Sources
 =======
@@ -15,22 +30,13 @@ Sources
 Sources are various systems for service discovery, consul and etcd for example.
 These provide data which is then validated according to schemas.
 
-Consul
-------
+- Consul
+- Etcd
+- Flat Files
 
-TBD
+Sources will map backend data, usually at some fixed location in the remote
+sources keyspace, to a map of YAML described data.
 
-Etcd
-----
-
-TBD
-
-Flat Files
-----------
-
-Used for testing flat files are just YAML blobs read from the container.
-Because you could bind mount these in this isn't a completely useless thing to
-do.
 
 Rules
 =====
@@ -55,18 +61,20 @@ When also supports additional triggering rules in the format:
 last two examples are identical). All means all interfaces must validate before
 the rule can trigger.
 
-'any' means at least one of the listed interfaces must validate with proper data.
+'any' means at least one of the listed interfaces must validate with proper
+data.
 
-'do' should specify a handler. See the handlers section for calling conventions.
+'do' should specify a handler. See the handlers section for calling
+conventions.
 
 Handlers
 ========
 Handlers are passed a JSON serialized bag of data containing all the matched
-(validate) interfaces from their 'when' trigger. This is written to STDIN of the 
-handler process. The handler then only need exit normally (0) for the rule to
-succeed. If the handler fails a number of times (see disco.fail_limit) we assume
-the handler is broken and terminate. We take this approach because we have some
-assurances that the data is valid based on the schema and rules.
+(validate) interfaces from their 'when' trigger. This is written to STDIN of
+the handler process. The handler then only need exit normally (0) for the rule
+to succeed. If the handler fails a number of times (see disco.fail_limit) we
+assume the handler is broken and terminate. We take this approach because we
+have some assurances that the data is valid based on the schema and rules.
 
 
 
@@ -95,7 +103,7 @@ backends) then have values in their namespace available to them at runtime.
 
   Flat
   ----
-  flat.file: (path) SCnfigure the flat file source with a configuration file in YAML
+  flat.file: (path) Configure the flat file source with a configuration file in YAML
 
   Consul
   ------
@@ -131,7 +139,38 @@ index and easily include them into your container at build time.
 
 For example in a Dockerfile you might say
 
-    RUN cake layer:<layer-name>
+    RUN cake layer <layer-name>
+
+
+Layers can be found at http://layer-cake.io
+
+Layers should include a layer.yaml in their top directory with the following format:
+
+layer.yaml
+----------
+
+    layer:
+        name: layername
+        author: Name
+        repo: git repo
+        repopath: <optional subpath under git repo to treat as the layer>
+
+
+Cake
+====
+
+The 'cake' command has a 'build' directive that will take a cake.conf (yaml)
+file and assist you in automatically updating a Dockerfile to include all the
+proper directives to run disco. This will include pulling down any layers used
+in the container, installing them and setting up the ENTRYPOINT to use disco.
+
+cake.conf
+---------
+
+This simple YAML file should take the format 
+
+    cake:
+        layers: [ layername ]
 
 
 Examples
@@ -160,7 +199,8 @@ the consul ui (http://10.0.4.106/ui in this example) you can do into the KV
 store delete and add keys and see the changing behavior of disco.
 
 
-Disco is intended to replace the CMD in your Dockerfile, this can be done by prefixing the cmd with disco.
+Disco is intended to replace the CMD in your Dockerfile, this can be done by
+prefixing the cmd with disco.
 
     CMD = disco <original cmd>
 

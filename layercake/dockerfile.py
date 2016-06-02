@@ -74,6 +74,8 @@ class Dockerfile(list):
             self.append(new)
 
     def __getitem__(self, key):
+        if isinstance(key, int):
+            return super(Dockerfile, self).__getitem__(key)
         return [i['args'] for i in self.find(key, find_all=True)]
 
     def last(self, token):

@@ -1,0 +1,8 @@
+rules:
+    - when: <interface>
+      do: <handler>
+    - when: any:<interface1>,<interface2>
+      do: <handler2>
+    - when: all:<interface3>,<interface2>
+      do: <handler3>
+      once: true

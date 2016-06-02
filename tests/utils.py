@@ -26,3 +26,6 @@ def Environ(**kwargs):
             os.environ[r] = orig[r]
 
 
+class O(dict):
+    def __getattr__(self, key):
+        return self[key]

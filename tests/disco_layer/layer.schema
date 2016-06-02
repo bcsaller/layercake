@@ -1,0 +1,8 @@
+type: object
+name: layer
+properties:
+    - interface:
+        type: string
+    - host:
+        type: string
+

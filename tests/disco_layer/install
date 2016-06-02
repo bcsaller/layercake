@@ -1,0 +1,5 @@
+#!/bin/bash
+# A lifecycle script called during the construction of the container
+# when though of in the context of a Dockerfile each layer will 
+# have its install hook run during build.
+echo "Installing"
