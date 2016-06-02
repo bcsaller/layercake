@@ -128,12 +128,12 @@ class Cake:
     def fetch_layer(self, name, resolving):
         if resolving.get(name):
             return resolving[name]
-
+        layer = None
         if name in self.cake_map:
             # Construct and register a layer from the
             # directory
             layer = Layer.from_path(self.cake_map[name])
-        else:
+        elif layer is None:
             metadata = layer_get_metadata(name, api=self.api_endpoint)
             layer = Layer(metadata)
             layer.fetch(self.directory, self.force_overwrite)
@@ -149,6 +149,9 @@ class Cake:
         return layer
 
     def fetch_all(self):
+        # This will fill out the resolving map when layers have deps they add
+        # them to the map and this loop will resolve them keeping the deps in
+        # proper order.
         resolving = OrderedDict([[n, None] for n in self.layer_names])
         while not all(resolving.values()):
             for name, layer in resolving.items():
