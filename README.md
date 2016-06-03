@@ -87,32 +87,35 @@ where the keys are namespaces via a '.'. Subsystems (disco and the various
 backends) then have values in their namespace available to them at runtime.
 
 
-  disco.path: (str) directory in container to use for schema, rules and
-  handlers
+      disco.path: (str) directory in container to use for schema, rules and
+      handlers, path itself maybe ': delimited'
 
-  disco.interval: (int:1) time in seconds to sleep between reading various
-  service backends or dispatching handlers
+      disco.interval: (int:1) time in seconds to sleep between reading various
+      service backends or dispatching handlers
 
-  disco.fail_limit: (int:5) the number of times a handler can be invoked with
-  validated data before we assume it won't exit successfully
+      disco.fail_limit: (int:5) the number of times a handler can be invoked
+      with validated data before we assume it won't exit successfully
 
 
-  <source>.<key>: a mapping of all keys under source will be available to the
-  source 
+      <source>.<key>: a mapping of all keys under source will be available to
+      the source 
 
 
   Flat
   ----
-  flat.file: (path) Configure the flat file source with a configuration file in YAML
+
+      flat.file: (path) Configure the flat file source with a configuration file in YAML
 
   Consul
   ------
-  consul.host: (str) http://addr:port
+
+      consul.host: (str) http://addr:port
 
   Etcd
   ----
-  etcd.host: (str) addr
-  etcd.port: (int) port
+
+      etcd.host: (str) addr
+      etcd.port: (int) port
 
 
 Layers
