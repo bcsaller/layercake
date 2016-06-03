@@ -3,6 +3,7 @@ import unittest
 from utils import local_file, Environ, O
 
 from layercake import cake
+from layercake import constants
 
 
 class TestCake(unittest.TestCase):
@@ -28,4 +29,5 @@ class TestCake(unittest.TestCase):
                               local_file("cake.conf")])
         df = cake.bake_main(options)
         assert df.entrypoint['args'][0] == "/usr/bin/disco"
-        assert df[-1]['args'] == ["cake", "layer", "basic"]
+        assert df[-1]['args'] == ["cake", "layer", "basic",
+                                  "-d", constants.LAYERS_HOME]

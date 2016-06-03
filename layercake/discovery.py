@@ -135,7 +135,7 @@ class Discover:
                 log.debug("Learn {} from {}".format(
                     sorted(state.keys()),
                     source.name))
-                knowledge.inject(state)
+                knowledge.update(state)
                 self._hashes[source.name] = cur_hash
 
     async def watch(self, knowledge):

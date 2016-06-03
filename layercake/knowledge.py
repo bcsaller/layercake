@@ -2,20 +2,14 @@ import jsonschema
 import logging
 import yaml
 
-from collections import ChainMap
+from .utils import NestedDict
 
 log = logging.getLogger("disco")
 
 
-class Knowledge:
+class Knowledge(NestedDict):
     """Nested Dict like composite of knowledge from
     any available sources"""
-
-    def __init__(self):
-        self.map = ChainMap()
-
-    def __repr__(self):
-        return str(self.map)
 
     def load(self, filelike, to=None):
         data = yaml.load(filelike)
@@ -24,11 +18,7 @@ class Knowledge:
             for p in reversed(to.split(".")):
                 d = {p: d}
             data = d
-        self.inject(data)
-        return self
-
-    def inject(self, data):
-        self.map = self.map.new_child(data)
+        self.update(data)
         return self
 
     def load_schema(self, filelike):
@@ -54,17 +44,4 @@ class Knowledge:
             return False
         except KeyError:
             return False
-
         return True
-
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    def __getitem__(self, key):
-        o = self.map
-        for part in key.split('.'):
-            o = o[part]
-        return o

@@ -24,6 +24,6 @@ class TestReactive(unittest.TestCase):
         self.assertFalse(rule.match(kb))
 
     def test_reactive(self):
-        r = reactive.Reactive("/bin/true")
+        r = reactive.Reactive()
         r.load_rules(pkg_resources.resource_stream(__name__, "myapp1.rules"))
         self.assertEqual(len(r.rules), 1)

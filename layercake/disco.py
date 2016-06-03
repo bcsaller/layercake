@@ -6,6 +6,7 @@ import logging.handlers
 import os
 import yaml
 
+from .constants import LAYERCAKE_DIR
 from . import reactive
 
 log = logging.getLogger("disco")
@@ -29,8 +30,8 @@ def configure_logging(lvl):
     logging.getLogger("requests").setLevel(logging.WARNING)
 
 
-def configure_from_file(name="disco.conf"):
-    config = {}
+def configure_from_file(name="{}/disco.conf".format(LAYERCAKE_DIR)):
+    config = {'disco': {'path': LAYERCAKE_DIR}}
     if os.path.exists(name):
         config.update(yaml.load(open(name, 'r')))
     return config

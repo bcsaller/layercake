@@ -44,22 +44,21 @@ Rules
 You may include any number of .rules files in your container. These files
 should be YAML formatted with the following structure:
 
+    format: 1
     rules:
-        - when: <interface>
-          do: <handler>
+        - rule:
+            op: any | all
+            when: <interface:str> | [<interface:str>, ]
+            do: <handler>
 
 'When' targets an interface for which there should be a matching schema. The
 when rule triggers by default when all the data from composed sources include a
-key under which enough valid data exists to satisfy the schema.
+key under which enough valid data exists to satisfy the schema. When may be a
+list of interface names or a single interface as a string.
 
-When also supports additional triggering rules in the format:
-    - when: any:x,y,z
-    - when: all:x,y,z
-    - when: x,y,z
-
-'all' is the default operation for comma delimited interface names (thus the
-last two examples are identical). All means all interfaces must validate before
-the rule can trigger.
+'all' is the default operation (op) for comma delimited interface names (thus
+the last two examples are identical). All means all interfaces must validate
+before the rule can trigger.
 
 'any' means at least one of the listed interfaces must validate with proper
 data.

@@ -1,3 +1,6 @@
+format: 1
 rules:
-  - when: mysql
-    do: mysql-configure
+  - rule:
+        op: all
+        when: mysql
+        do: mysql-configure

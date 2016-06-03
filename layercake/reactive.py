@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-import re
 import yaml
 
 from collections import ChainMap
@@ -19,7 +18,7 @@ _marker = object()
 class Rule:
     op = all
 
-    def __init__(self, deps, command, once=True):
+    def __init__(self, deps, command, op=None, once=True):
         self._complete = False
         # Once complete the rule shouldn't be run again
         self.once = once
@@ -27,6 +26,8 @@ class Rule:
         # and validate by their schema
         self.deps = deps
         self.cmd = command
+        if op is not None:
+            self.op = op
         self._fail_ct = 0
 
     def __repr__(self):
@@ -117,38 +118,53 @@ class Reactive:
         self.config = config or {}
         self.loop = loop if loop else asyncio.get_event_loop()
         self.rules = []
+        self._path = None
         self.kb = knowledge.Knowledge()
 
-    def add_rule(self, definition):
+    def add_rule(self, definition, fmt):
         # simple rule parser
-        defs = definition.get("when", "")
-        op = any if defs.startswith("any:") else all
-        if defs.startswith("any:") or defs.startswith("all:"):
-            defs = defs[4:]
-        defs = re.split(",\s*", defs)
-        cmd = definition["do"]
-
-        rule = Rule(defs, cmd)
-        rule.op = op
+        # definition is according to fmt which an int
+        # that allows format version changes
+        if fmt != 1:
+            raise ValueError("Unknown rules format %s" % fmt)
+        data = definition['rule']
+        op = data.get("op", "all")
+        op = any if op == "any" else all
+        defs = data['when']
+        if isinstance(defs, str):
+            defs = [defs]
+        cmd = data["do"]
+        rule = Rule(defs, cmd, op)
         self.rules.append(rule)
         return rule
 
     def load_rules(self, filelike):
-        for d in yaml.load(filelike)['rules']:
-            self.add_rule(d)
+        spec = yaml.load(filelike)
+        fmt = spec.get("format", 1)
+        # XXX: validate with schema
+        for d in spec['rules']:
+            self.add_rule(d, fmt)
 
     def load_schema(self, filelike):
         self.kb.load_schema(filelike)
 
+    @property
+    def path(self):
+        if self._path:
+            return self._path
+        path = utils.nested_get(self.config, 'disco.path', os.getcwd())
+        self._path = [Path(p) for p in path.split(":")]
+        return self._path
+
     def find_rules(self):
-        path = Path(utils.nested_get(self.config, 'disco.path', os.getcwd()))
-        for fn in path.glob("*.rules"):
-            self.load_rules(fn.open())
+        for path in self.path:
+            for fn in path.rglob("*.rules"):
+                self.load_rules(fn.open())
 
     def find_schemas(self):
-        path = Path(utils.nested_get(self.config, 'disco.path', os.getcwd()))
-        for fn in path.glob("*.schema"):
-            self.load_schema(fn.open())
+        for path in self.path:
+            for fn in path.rglob("*.schema"):
+                self.load_schema(fn.open())
 
     async def run_once(self):
         complete = True
