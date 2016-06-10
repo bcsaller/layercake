@@ -223,7 +223,7 @@ def bake_main(options):
     # new container.
 
     last_run = df.last("RUN")
-    df.add("RUN", ['pip', 'install', '--upgrade', 'layercake'], at=last_run)
+    df.add("RUN", ['pip', 'install', '--upgrade', 'layer-cake'], at=last_run)
     for layer_name in config['layers']:
         last_run = df.last("RUN")
         df.add("RUN", ["cake", "layer", layer_name,
