@@ -42,17 +42,17 @@ class FlatFile(Source):
     async def connect(self):
         self.state = yaml.load(open(self.config['file']))
 
-    async def State(self):
-        return self.state
-
-
 class ConsulSource(Source):
     async def connect(self):
         self.client = Consul(**self.config)
 
     async def State(self):
-        result = await self.client.kv.items(self.config.get('prefix', ''))
         state = {}
+        try:
+            result = await self.client.kv.items(self.config.get('prefix', ''))
+        except aioconsul.exceptions.HTTPError:
+            log.warn("Consul Error", exc_info=True)
+            return state
         for k, v in result.items():
             o = state
             if "/" in k:
@@ -70,10 +70,14 @@ class Etcd(Source):
         self.client = EtcdClient(**self.config)
 
     async def State(self):
-        result = await self.client.read(
-                self.config.get("prefix", ""),
-                recursive=True)
         state = {}
+        try:
+            result = await self.client.read(
+                    self.config.get("prefix", ""),
+                    recursive=True)
+        # XXX: fix exc
+        except Exception as e:
+            log.warn("Etcd Error %s", e, exc_info=True)
         for leaf in result.leaves:
             o = state
             if "/" in leaf.key:

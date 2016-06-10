@@ -15,6 +15,7 @@ log = logging.getLogger("disco")
 def setup():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--log-level", default=logging.INFO)
+    parser.add_argument("-c", "--conf", default="{}/disco.conf".format(LAYERCAKE_DIR))
     parser.add_argument("cmd", nargs="+")
     return parser.parse_args()
 
@@ -30,9 +31,9 @@ def configure_logging(lvl):
     logging.getLogger("requests").setLevel(logging.WARNING)
 
 
-def configure_from_file(name="{}/disco.conf".format(LAYERCAKE_DIR)):
+def configure_from_file(name=None):
     config = {'disco': {'path': LAYERCAKE_DIR}}
-    if os.path.exists(name):
+    if name and os.path.exists(name):
         config.update(yaml.load(open(name, 'r')))
     return config
 
@@ -63,7 +64,7 @@ def main():
     loop.set_debug(False)
     options = setup()
     configure_logging(options.log_level)
-    config = configure_from_file()
+    config = configure_from_file(options.conf)
     config.update(configure_from_env())
     r = reactive.Reactive(config, loop=loop)
     r.find_rules()
