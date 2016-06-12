@@ -201,6 +201,9 @@ class Cake:
 
 
 def layer_main(options):
+    endpoint = os.environ.get("LAYERCAKE_API")
+    if endpoint:
+        options.layer_endpoint = endpoint
     cake = Cake(options)
     cake.fetch_all()
     if options.no_install:
@@ -229,6 +232,10 @@ def bake_main(options):
         df.add("RUN", ["cake", "layer", layer_name,
                "-d", LAYERS_HOME],
                at=last_run)
+
+    endpoint = os.environ.get("LAYERCAKE_API")
+    if endpoint:
+        df.add("ENV", ["LAYERCAKE_API={}".format(endpoint)])
 
     # we might have an entrypoint
     # or a command (or both)
