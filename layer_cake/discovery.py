@@ -42,6 +42,10 @@ class FlatFile(Source):
     async def connect(self):
         self.state = yaml.load(open(self.config['file']))
 
+    async def State(self):
+        return self.state
+
+
 class ConsulSource(Source):
     async def connect(self):
         self.client = Consul(**self.config)

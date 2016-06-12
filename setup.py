@@ -10,12 +10,23 @@ from setuptools import setup, find_packages
 #reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
-    name='layer-cake',
-    version="0.1.0",
+    name='layer_cake',
+    version="0.1.1",
     packages=find_packages(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
-    install_requires=[],
+    install_requires=[
+        "pyyaml",
+        "jsonschema",
+        "aioconsul",
+        "docker-py",
+        "request",
+        "aio-etcd",
+        ],
+    dependency_links=[
+        "https://api.github.com/repos/M-o-a-T/python-aio-etcd/tarball/master#aio-etcd"
+    ],
     include_package_data=True,
+    url="https://github.com/bcsaller/layercake",
     maintainer='Benjamin Saller',
     maintainer_email='benjamin.saller@canonical.com',
     description=('Service Discovery and Configuration for Application Containers'),
@@ -24,11 +35,12 @@ setup(
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Programming Language :: Python",
+        'Programming Language :: Python :: 3.5',
     ],
     entry_points={
         'console_scripts': [
-                'disco = layercake.disco:main',
-                'cake = layercake.cake:main',
+                'disco = layer_cake.disco:main',
+                'cake = layer_cake.cake:main',
         ],
     },
 )

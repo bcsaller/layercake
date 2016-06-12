@@ -2,8 +2,8 @@ import unittest
 
 from utils import local_file, Environ, O
 
-from layercake import cake
-from layercake import constants
+from layer_cake import cake
+from layer_cake import constants
 
 
 class TestCake(unittest.TestCase):

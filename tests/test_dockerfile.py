@@ -1,7 +1,7 @@
 import unittest
 
 from utils import local_file
-from layercake.dockerfile import Dockerfile
+from layer_cake.dockerfile import Dockerfile
 
 
 class TestDockerfile(unittest.TestCase):

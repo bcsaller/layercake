@@ -13,10 +13,10 @@ from collections import OrderedDict
 from io import BytesIO
 from pathlib import Path
 
-from layercake import dockerfile
-from layercake.constants import LAYERS_HOME
-from layercake.disco import configure_logging
-from layercake.utils import nested_get
+from . import dockerfile
+from .constants import LAYERS_HOME
+from .disco import configure_logging
+from .utils import nested_get
 
 from docker import Client as DockerClient
 

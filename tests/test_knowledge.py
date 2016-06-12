@@ -1,7 +1,7 @@
 import unittest
 
 from utils import local_stream
-from layercake.knowledge import Knowledge
+from layer_cake.knowledge import Knowledge
 
 
 class TestKnowledge(unittest.TestCase):

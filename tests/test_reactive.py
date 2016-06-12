@@ -3,8 +3,8 @@ import pkg_resources
 
 from utils import local_stream
 
-from layercake.knowledge import Knowledge
-from layercake import reactive
+from layer_cake.knowledge import Knowledge
+from layer_cake import reactive
 
 
 class TestReactive(unittest.TestCase):
