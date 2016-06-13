@@ -1,1 +1,7 @@
 pytest
+pyyaml
+jsonschema
+aioconsul
+requests
+docker-py
+git+https://github.com/M-o-a-T/python-aio-etcd

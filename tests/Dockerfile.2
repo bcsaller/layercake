@@ -1,0 +1,8 @@
+FROM python:3
+MAINTAINER none
+LABEL version="1.0"
+LABEL description="Multi \
+line"
+CMD ["top",  "-b"]
+# Only the last command is valid
+CMD ps aux

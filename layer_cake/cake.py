@@ -201,6 +201,7 @@ class Cake:
 
 
 def layer_main(options):
+    "Pull a layer from the api endpoint or from CAKE_PATH"
     endpoint = os.environ.get("LAYERCAKE_API")
     if endpoint:
         options.layer_endpoint = endpoint
@@ -240,14 +241,13 @@ def bake_main(options):
     # we might have an entrypoint
     # or a command (or both)
     if df.entrypoint:
-        df.entrypoint = ["/usr/bin/disco"] + df.entrypoint['args']
+        df.entrypoint = ["disco"] + df.entrypoint['args']
 
     if not options.no_build:
         client = DockerClient()
         f = BytesIO(str(df).encode("utf-8"))
-        response = client.build(fileobj=f, tag="layercake/disco")
+        response = client.build(fileobj=f, tag="layercake/disco", decode=True)
         for line in response:
-            line = json.loads(line.decode("utf-8"))
             if 'errorDetail' in line:
                 log.critical(line['errorDetail']['message'].strip())
             elif 'stream' in line:
@@ -263,7 +263,7 @@ def setup(args=None):
     parser.set_defaults(func=lambda options: parser.print_help())
 
     parsers = parser.add_subparsers()
-    layer = parsers.add_parser("layer")
+    layer = parsers.add_parser("layer", help=layer_main.__doc__.split("\n", 1)[0])
     layer.add_argument("--layer-endpoint",
             help="API endpoint for metadata",
             default="http://interfaces.juju.solutions")
@@ -282,7 +282,7 @@ def setup(args=None):
                   "than one is provided they will be included in order"))
     layer.set_defaults(func=layer_main)
 
-    baker = parsers.add_parser("bake")
+    baker = parsers.add_parser("bake", help=bake_main.__doc__.split("\n", 1)[0])
     baker.add_argument("-d", "--dockerfile",
                        help="Dockerfile to process",
                        )

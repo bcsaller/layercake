@@ -5,6 +5,7 @@ import yaml
 
 
 from aioconsul import Consul
+from aioconsul.exceptions import HTTPError as ConsulHTTPError
 from aio_etcd import Client as EtcdClient
 
 from .utils import make_hash
@@ -54,7 +55,7 @@ class ConsulSource(Source):
         state = {}
         try:
             result = await self.client.kv.items(self.config.get('prefix', ''))
-        except aioconsul.exceptions.HTTPError:
+        except ConsulHTTPError:
             log.warn("Consul Error", exc_info=True)
             return state
         for k, v in result.items():
@@ -84,6 +85,8 @@ class Etcd(Source):
             log.warn("Etcd Error %s", e, exc_info=True)
         for leaf in result.leaves:
             o = state
+            if not leaf or not leaf.key:
+                continue
             if "/" in leaf.key:
                 parts = [p for p in leaf.key.split("/") if p]
                 for p in parts[:-1]:
