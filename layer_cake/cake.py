@@ -257,6 +257,24 @@ def bake_main(options):
         return df
 
 
+def search_main(options):
+    url = "{}/api/v2/layers/".format(options.layer_endpoint)
+    query = {"q": options.term}
+    result = requests.get(url, query)
+    if not result.ok:
+        print("Unable to connect to layer endpoint")
+        return
+    data = result.json()
+    if options.format == "json":
+        print(json.dumps(data, indent=2))
+    elif options.format == "yaml":
+        print(yaml.dump(data))
+    else:
+        print("{:<10} {:<10} {}".format("Id", "Name", "Descrption"))
+        for item in data:
+            print("{id:<10} {name:<10} {summary}".format(**item))
+
+
 def setup(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--log-level", default=logging.INFO)
@@ -266,7 +284,7 @@ def setup(args=None):
     layer = parsers.add_parser("layer", help=layer_main.__doc__.split("\n", 1)[0])
     layer.add_argument("--layer-endpoint",
             help="API endpoint for metadata",
-            default="http://interfaces.juju.solutions")
+            default="http://layer-cake.io")
     layer.add_argument("-d", "--directory", default=Path.cwd())
     layer.add_argument("-f", "--force", action="store_true",
                         help=("Force overwrite of existing layers "
@@ -292,6 +310,14 @@ def setup(args=None):
                        nargs="?",
                        default="cake.conf")
     baker.set_defaults(func=bake_main)
+
+    search = parsers.add_parser("search")
+    search.add_argument("--layer-endpoint",
+            help="API endpoint for metadata",
+            default="http://layer-cake.io")
+    search.add_argument("-f", "--format", default="text", help="Options text|json|yaml")
+    search.add_argument("term", nargs="+")
+    search.set_defaults(func=search_main)
 
     options = parser.parse_args(args)
     return options
