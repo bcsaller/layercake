@@ -27,7 +27,7 @@ def layer_get_metadata(
         name,
         api="http://interfaces.juju.solutions",
         apiver="api/v2",
-        apiendpoint="layer"):
+        apiendpoint="layers"):
     uri = "/".join([api, apiver, apiendpoint, name])
     try:
         # Filter the results to only those layers which are
@@ -81,7 +81,7 @@ class Layer:
 
     def fetch(self, todir, overwrite_target=False):
         repo = self.metadata['repo']
-        name = self.metadata['name']
+        name = self.metadata['id']
         subpath = self.metadata.get('repopath', '/')
         if subpath.startswith("/"):
             subpath = subpath[1:]
@@ -195,7 +195,7 @@ class Cake:
         # during the install
         # layer install will copy *.{schema,rules} to layerdir
         layerdir = Path(LAYERS_HOME).mkdir(
-                parents=True, exists_ok=True)
+                parents=True, exist_ok=True)
         for layer in self.layers.values():
             layer.install(layerdir)
 
@@ -258,6 +258,10 @@ def bake_main(options):
 
 
 def search_main(options):
+    endpoint = os.environ.get("LAYERCAKE_API")
+    if endpoint:
+        options.layer_endpoint = endpoint
+
     url = "{}/api/v2/layers/".format(options.layer_endpoint)
     query = {"q": options.term}
     result = requests.get(url, query)
