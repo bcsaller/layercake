@@ -3,7 +3,7 @@ MAINTAINER none
 LABEL version="1.0"
 LABEL description="Multi \
 line"
-ENTRYPOINT ["disco", "/bin/bash"]
+ENTRYPOINT ["/bin/bash"]
 CMD ["top",  "-b"]
 # Only the last command is valid
 CMD ps aux
