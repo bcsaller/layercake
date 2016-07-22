@@ -25,22 +25,21 @@ log = logging.getLogger("cake")
 
 def layer_get_metadata(
         name,
-        api="http://interfaces.juju.solutions",
+        api="http://layer-cake.io",
         apiver="api/v2",
         apiendpoint="layers"):
     uri = "/".join([api, apiver, apiendpoint, name])
     try:
-        # Filter the results to only those layers which are
-        # targeted to runC containers
-        result = requests.get(uri, params={"q": "kind:runC"})
+        log.debug("Fetching Layer information %s", uri)
+        result = requests.get(uri)
     except:
         result = None
     if result and result.ok:
         result = result.json()
         if result.get("repo"):
             return result
-    raise ValueError("Unable to locate layer {}".format(
-                    name))
+    raise ValueError("Unable to locate layer {} using {}".format(
+                    name, uri))
 
 
 def git(*cmd, **kwargs):
@@ -191,8 +190,7 @@ class Cake:
         log.debug("Found local Layers %s", sorted(self.cake_map.items()))
 
     def install(self):
-        # There are some implicit rules usedd
-        # during the install
+        # There are some implicit rules used during the install
         # layer install will copy *.{schema,rules} to layerdir
         layerdir = Path(LAYERS_HOME).mkdir(
                 parents=True, exist_ok=True)
@@ -218,31 +216,34 @@ def bake_main(options):
     cake:
         layers: []
     """
+    endpoint = os.environ.get("LAYERCAKE_API")
+    if endpoint:
+        options.layer_endpoint = endpoint
+
     config = yaml.load(open(options.config))['cake']
     df = dockerfile.Dockerfile(options.dockerfile)
+
+    if options.layer_endpoint:
+        df.add("ENV", "LAYERCAKE_API={}".format(options.layer_endpoint))
 
     # In this mode we are adding run cmds for each
     # layer in the cfg file (those may pull other layers)
     # then we output a new docker file and docker build the
     # new container.
-
     last_run = df.last("RUN")
-    df.add("RUN", ['pip', 'install', '--upgrade', 'layer_cake'], at=last_run)
+    df.add("RUN", ['pip3', 'install', '--upgrade', 'layer_cake'], at=last_run)
     for layer_name in config['layers']:
         last_run = df.last("RUN")
         df.add("RUN", ["cake", "layer", layer_name,
                "-d", LAYERS_HOME],
                at=last_run)
 
-    endpoint = os.environ.get("LAYERCAKE_API")
-    if endpoint:
-        df.add("ENV", ["LAYERCAKE_API={}".format(endpoint)])
-
     # we might have an entrypoint
     # or a command (or both)
     if df.entrypoint:
         df.entrypoint = ["disco"] + df.entrypoint['args']
 
+    log.debug("Using Dockerfile\n%s", str(df))
     if not options.no_build:
         client = DockerClient()
         f = BytesIO(str(df).encode("utf-8"))
@@ -253,7 +254,6 @@ def bake_main(options):
             elif 'stream' in line:
                 log.info(line['stream'].strip())
     else:
-        log.debug(str(df))
         return df
 
 
