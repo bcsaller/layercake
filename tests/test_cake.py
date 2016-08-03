@@ -29,5 +29,5 @@ class TestCake(unittest.TestCase):
                               local_file("cake.conf")])
         df = cake.bake_main(options)
         assert "disco" in df.entrypoint['args'][0]
-        assert df[-1]['args'] == ["cake", "layer", "disco-layer",
+        assert df[-1]['args'] == ["cake", "layer", "test",
                                   "-d", constants.LAYERS_HOME]

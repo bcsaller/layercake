@@ -14,7 +14,7 @@ from io import BytesIO
 from pathlib import Path
 
 from . import dockerfile
-from .constants import LAYERS_HOME
+from .constants import LAYERS_HOME, VERSION
 from .disco import configure_logging
 from .utils import nested_get
 
@@ -189,10 +189,10 @@ class Cake:
         self.cake_map = cake_map
         log.debug("Found local Layers %s", sorted(self.cake_map.items()))
 
-    def install(self):
+    def install(self, target_dir):
         # There are some implicit rules used during the install
         # layer install will copy *.{schema,rules} to layerdir
-        layerdir = Path(LAYERS_HOME).mkdir(
+        layerdir = Path(target_dir).mkdir(
                 parents=True, exist_ok=True)
         for layer in self.layers.values():
             layer.install(layerdir)
@@ -207,7 +207,7 @@ def layer_main(options):
     cake.fetch_all()
     if options.no_install:
         return
-    cake.install()
+    cake.install(options.directory)
 
 
 def bake_main(options):
@@ -231,7 +231,13 @@ def bake_main(options):
     # then we output a new docker file and docker build the
     # new container.
     last_run = df.last("RUN")
-    df.add("RUN", ['pip3', 'install', '--upgrade', 'layer_cake'], at=last_run)
+    if not options.use_devel:
+        df.add("RUN", ['pip3', 'install', '--upgrade', 'layer_cake==%s' % VERSION], at=last_run)
+    else:
+        # For devel we ask the container to pull git master
+        df.add("RUN", ['pip3', 'install', '--upgrade',
+            "https://api.github.com/repos/bcsaller/layercake/tarball/master#layer_cake"],
+                at=last_run)
     for layer_name in config['layers']:
         last_run = df.last("RUN")
         df.add("RUN", ["cake", "layer", layer_name,
@@ -308,8 +314,12 @@ def setup(args=None):
     baker.add_argument("-d", "--dockerfile",
                        help="Dockerfile to process",
                        )
+    baker.add_argument("--layer-endpoint",
+            help="API endpoint for metadata",
+            default="http://layer-cake.io")
     baker.add_argument("-n", "--no-build", action="store_true",
                        help="Don't build Dockerfile")
+    baker.add_argument("--use-devel", action="store_true")
     baker.add_argument("config",
                        nargs="?",
                        default="cake.conf")

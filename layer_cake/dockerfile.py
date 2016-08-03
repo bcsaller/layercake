@@ -99,7 +99,6 @@ class Dockerfile(list):
         new = dict(token=cmd, args=args, key=uuid4().hex, is_json=is_json)
         adder(new)
 
-
     @property
     def cmd(self):
         return self.find("CMD", reverse=True)
