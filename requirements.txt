@@ -2,7 +2,7 @@ pytest==2.9.2
 PyYAML==3.11
 jsonschema==2.5.1
 aioconsul==0.3
-requests==2.10.0
+requests==2.20.0
 websocket-client==0.37.0
 docker_py==1.8.1
 git+https://github.com/M-o-a-T/python-aio-etcd
