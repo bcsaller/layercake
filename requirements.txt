@@ -1,5 +1,5 @@
 pytest==2.9.2
-PyYAML==3.11
+PyYAML==5.4
 jsonschema==2.5.1
 aioconsul==0.3
 requests==2.10.0
